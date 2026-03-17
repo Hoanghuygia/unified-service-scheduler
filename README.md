@@ -28,7 +28,7 @@ Production-ready NestJS backend template for a vehicle service appointment booki
 │   │   └── prisma/
 │   ├── config/
 │   ├── modules/
-│   │   ├── appointment-holds/
+│   │   ├── reservations/
 │   │   ├── appointments/
 │   │   ├── health/
 │   │   └── slots/
@@ -45,8 +45,8 @@ Production-ready NestJS backend template for a vehicle service appointment booki
 ## API Endpoints
 
 - `GET /health` health check
-- `POST /appointment-holds` create a temporary hold (mocked behavior)
-- `POST /appointments` confirm appointment from hold (mocked behavior)
+- `POST /reservations` create a temporary reservation (mocked behavior)
+- `POST /appointments` confirm appointment from reservation (mocked behavior)
 - `PATCH /appointments/:id` mark appointment as completed (mocked behavior)
 - `GET /slots?dealershipId=...&from=...&to=...` list slots by status (mocked behavior)
 
@@ -103,14 +103,14 @@ npm run test:e2e
 ### What is tested
 
 - Unit tests (`test/unit`):
-  - `AppointmentHoldsService`
-    - creates hold when slot is available (mocked)
+  - `ReservationsService`
+    - creates reservation when slot is available (mocked)
     - returns suggested slot when unavailable
   - `AppointmentsService`
-    - confirms booking from hold
+    - confirms booking from reservation
     - marks appointment as completed
 - Integration/e2e tests (`test/e2e`):
-  - `POST /appointment-holds` returns `201`
+  - `POST /reservations` returns `201`
   - `POST /appointments` returns `201`
   - `PATCH /appointments/:id` returns `200`
   - `GET /slots` returns slot list

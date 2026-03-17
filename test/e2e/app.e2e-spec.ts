@@ -26,9 +26,9 @@ describe('API Endpoints (e2e)', () => {
         await app.close();
     });
 
-    it('POST /appointment-holds returns 201 and mock response', async () => {
+    it('POST /reservations returns 201 and mock response', async () => {
         const response = await request(app.getHttpServer())
-            .post('/appointment-holds')
+            .post('/reservations')
             .send({
                 vehicleId: 'c7bbf5f3-8f57-4452-95a6-a66cd4afe5f6',
                 serviceTypeId: '4c4f1960-a95b-4e60-b45f-e58bde8d0ec0',
@@ -44,7 +44,7 @@ describe('API Endpoints (e2e)', () => {
         await request(app.getHttpServer())
             .post('/appointments')
             .send({
-                holdId: 'd8a43f44-e8d6-4fb2-8f59-d4d1df3efde9',
+                reservationId: 'd8a43f44-e8d6-4fb2-8f59-d4d1df3efde9',
             })
             .expect(201);
     });

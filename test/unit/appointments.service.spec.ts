@@ -34,14 +34,14 @@ describe('AppointmentsService', () => {
         service = module.get<AppointmentsService>(AppointmentsService);
     });
 
-    it('should confirm booking from hold', async () => {
+    it('should confirm booking from reservation', async () => {
         const result = await service.confirmBooking({
-            holdId: 'd8a43f44-e8d6-4fb2-8f59-d4d1df3efde9',
+            reservationId: 'd8a43f44-e8d6-4fb2-8f59-d4d1df3efde9',
         });
 
         expect(result).toEqual(
             expect.objectContaining({
-                holdId: 'd8a43f44-e8d6-4fb2-8f59-d4d1df3efde9',
+                reservationId: 'd8a43f44-e8d6-4fb2-8f59-d4d1df3efde9',
                 status: 'BOOKED',
             }),
         );

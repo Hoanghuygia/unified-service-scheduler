@@ -18,27 +18,27 @@ export class AppointmentsController {
     @ApiBody({
         type: CreateAppointmentDto,
         examples: {
-            confirmFromHold: {
-                summary: 'Confirm booking from hold',
+            confirmFromReservation: {
+                summary: 'Confirm booking from reservation',
                 value: {
-                    holdId: 'd8a43f44-e8d6-4fb2-8f59-d4d1df3efde9',
+                    reservationId: 'd8a43f44-e8d6-4fb2-8f59-d4d1df3efde9',
                 },
             },
         },
     })
     @ApiCreatedResponse({
-        description: 'Appointment created from a valid hold',
+        description: 'Appointment created from a valid reservation',
         schema: {
             example: {
                 appointmentId: 'appt_mock_456',
-                holdId: 'd8a43f44-e8d6-4fb2-8f59-d4d1df3efde9',
+                reservationId: 'd8a43f44-e8d6-4fb2-8f59-d4d1df3efde9',
                 status: 'BOOKED',
                 bookedAt: '2026-03-17T12:10:00.000Z',
             },
         },
     })
     async create(@Body() dto: CreateAppointmentDto) {
-        this.logger.debug('Received confirm booking request', { holdId: dto.holdId });
+        this.logger.debug('Received confirm booking request', { reservationId: dto.reservationId });
         return this.appointmentsService.confirmBooking(dto);
     }
 

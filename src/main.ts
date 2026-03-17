@@ -26,7 +26,7 @@ async function bootstrap() {
         .setDescription('Vehicle service appointment booking system API')
         .setVersion('1.0.0')
         .addTag('health')
-        .addTag('appointment-holds')
+        .addTag('reservations')
         .addTag('appointments')
         .addTag('slots')
         .build();

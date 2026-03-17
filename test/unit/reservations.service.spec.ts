@@ -1,19 +1,19 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppLoggerService } from '../../src/common/logger/logger.service';
 import { PrismaService } from '../../src/common/prisma/prisma.service';
-import { AppointmentHoldsService } from '../../src/modules/appointment-holds/appointment-holds.service';
+import { ReservationsService } from '../../src/modules/reservations/reservations.service';
 
-describe('AppointmentHoldsService', () => {
-    let service: AppointmentHoldsService;
+describe('ReservationsService', () => {
+    let service: ReservationsService;
 
     beforeEach(async () => {
         const module: TestingModule = await Test.createTestingModule({
             providers: [
-                AppointmentHoldsService,
+                ReservationsService,
                 {
                     provide: PrismaService,
                     useValue: {
-                        appointmentHold: {
+                        reservation: {
                             create: jest.fn(),
                         },
                     },
@@ -30,13 +30,13 @@ describe('AppointmentHoldsService', () => {
             ],
         }).compile();
 
-        service = module.get<AppointmentHoldsService>(AppointmentHoldsService);
+        service = module.get<ReservationsService>(ReservationsService);
     });
 
-    it('should create a hold when slot is available (mocked)', async () => {
+    it('should create a reservation when slot is available (mocked)', async () => {
         jest.spyOn(service as any, 'checkSlotAvailability').mockResolvedValueOnce(true);
 
-        const result = await service.createHold({
+        const result = await service.createReservation({
             vehicleId: 'c7bbf5f3-8f57-4452-95a6-a66cd4afe5f6',
             serviceTypeId: '4c4f1960-a95b-4e60-b45f-e58bde8d0ec0',
             dealershipId: '8ec56f3e-4e8d-4fef-a31a-9f89e843e70f',
@@ -44,14 +44,14 @@ describe('AppointmentHoldsService', () => {
         });
 
         expect(result.success).toBe(true);
-        expect(result).toHaveProperty('holdId');
+        expect(result).toHaveProperty('reservationId');
         expect(result).toHaveProperty('expiresAt');
     });
 
     it('should return suggested slot when unavailable', async () => {
         jest.spyOn(service as any, 'checkSlotAvailability').mockResolvedValueOnce(false);
 
-        const result = await service.createHold({
+        const result = await service.createReservation({
             vehicleId: 'c7bbf5f3-8f57-4452-95a6-a66cd4afe5f6',
             serviceTypeId: '4c4f1960-a95b-4e60-b45f-e58bde8d0ec0',
             dealershipId: '8ec56f3e-4e8d-4fef-a31a-9f89e843e70f',

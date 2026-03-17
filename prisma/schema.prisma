@@ -13,7 +13,7 @@ enum AppointmentStatus {
   CANCELLED
 }
 
-enum HoldStatus {
+enum ReservationStatus {
   ACTIVE
   EXPIRED
   CONVERTED
@@ -43,40 +43,40 @@ model ServiceType {
   name             String
   durationMinutes  Int
   appointments     Appointment[]
-  appointmentHolds AppointmentHold[]
+  reservations     Reservation[]
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 }
 
 model Appointment {
-  id              String            @id @default(uuid())
-  vehicleId       String
-  dealershipId    String
-  desiredTime     DateTime
-  startTime       DateTime
-  endTime         DateTime
-  status          AppointmentStatus @default(BOOKED)
-  serviceTypeId   String
-  technicianId    String?
-  serviceBayId    String?
-  appointmentHold AppointmentHold?
-  serviceType     ServiceType       @relation(fields: [serviceTypeId], references: [id])
-  technician      Technician?       @relation(fields: [technicianId], references: [id])
-  serviceBay      ServiceBay?       @relation(fields: [serviceBayId], references: [id])
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  id            String            @id @default(uuid())
+  vehicleId     String
+  dealershipId  String
+  desiredTime   DateTime
+  startTime     DateTime
+  endTime       DateTime
+  status        AppointmentStatus @default(BOOKED)
+  serviceTypeId String
+  technicianId  String?
+  serviceBayId  String?
+  reservation   Reservation?
+  serviceType   ServiceType       @relation(fields: [serviceTypeId], references: [id])
+  technician    Technician?       @relation(fields: [technicianId], references: [id])
+  serviceBay    ServiceBay?       @relation(fields: [serviceBayId], references: [id])
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
 
   @@index([dealershipId, startTime])
   @@index([vehicleId])
 }
 
-model AppointmentHold {
+model Reservation {
   id            String       @id @default(uuid())
   vehicleId     String
   dealershipId  String
   desiredTime   DateTime
   expiresAt     DateTime
-  status        HoldStatus   @default(ACTIVE)
+  status        ReservationStatus   @default(ACTIVE)
   serviceTypeId String
   appointmentId String?      @unique
   serviceType   ServiceType  @relation(fields: [serviceTypeId], references: [id])

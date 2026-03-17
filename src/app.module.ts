@@ -1,6 +1,6 @@
 import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { AppointmentHoldsModule } from './modules/appointment-holds/appointment-holds.module';
+import { ReservationsModule } from './modules/reservations/reservations.module';
 import { AppointmentsModule } from './modules/appointments/appointments.module';
 import { HealthModule } from './modules/health/health.module';
 import { SlotsModule } from './modules/slots/slots.module';
@@ -21,7 +21,7 @@ import { RequestContextMiddleware } from './common/request-context/request-conte
         LoggerModule,
         PrismaModule,
         HealthModule,
-        AppointmentHoldsModule,
+        ReservationsModule,
         AppointmentsModule,
         SlotsModule,
     ],

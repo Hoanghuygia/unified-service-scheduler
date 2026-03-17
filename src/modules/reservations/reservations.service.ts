@@ -1,18 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { AppLoggerService } from '../../common/logger/logger.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { HoldStatus } from '../../common/enums/hold-status.enum';
-import { CreateAppointmentHoldDto } from './dto/create-appointment-hold.dto';
+import { ReservationStatus } from '../../common/enums/reservation-status.enum';
+import { CreateReservationDto } from './dto/create-reservation.dto';
 
 @Injectable()
-export class AppointmentHoldsService {
+export class ReservationsService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly logger: AppLoggerService,
     ) {}
 
-    async createHold(dto: CreateAppointmentHoldDto) {
-        this.logger.log('Attempting to create appointment hold', {
+    async createReservation(dto: CreateReservationDto) {
+        this.logger.log('Attempting to create reservation', {
             vehicleId: dto.vehicleId,
             serviceTypeId: dto.serviceTypeId,
             dealershipId: dto.dealershipId,
@@ -38,16 +38,16 @@ export class AppointmentHoldsService {
         const now = Date.now();
         const expiresAt = new Date(now + 7 * 60 * 1000).toISOString();
 
-        this.logger.log('Appointment hold created', {
-            holdId: 'd8a43f44-e8d6-4fb2-8f59-d4d1df3efde9',
+        this.logger.log('Reservation created', {
+            reservationId: 'd8a43f44-e8d6-4fb2-8f59-d4d1df3efde9',
             expiresAt,
             dealershipId: dto.dealershipId,
         });
 
         return {
             success: true,
-            holdId: 'd8a43f44-e8d6-4fb2-8f59-d4d1df3efde9',
-            status: HoldStatus.ACTIVE,
+            reservationId: 'd8a43f44-e8d6-4fb2-8f59-d4d1df3efde9',
+            status: ReservationStatus.ACTIVE,
             expiresAt,
             dealershipId: dto.dealershipId,
             serviceTypeId: dto.serviceTypeId,
@@ -56,7 +56,7 @@ export class AppointmentHoldsService {
         };
     }
 
-    protected async checkSlotAvailability(_dto: CreateAppointmentHoldDto): Promise<boolean> {
+    protected async checkSlotAvailability(_dto: CreateReservationDto): Promise<boolean> {
         return true;
     }
 

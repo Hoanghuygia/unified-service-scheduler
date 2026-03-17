@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsDateString, IsUUID } from 'class-validator';
 
-export class CreateAppointmentHoldDto {
+export class CreateReservationDto {
     @ApiProperty({ example: 'c7bbf5f3-8f57-4452-95a6-a66cd4afe5f6' })
     @IsUUID()
     vehicleId!: string;

@@ -13,15 +13,15 @@ export class AppointmentsService {
     ) {}
 
     async confirmBooking(dto: CreateAppointmentDto) {
-        this.logger.log('Confirming appointment booking from hold', {
-            holdId: dto.holdId,
+        this.logger.log('Confirming appointment booking from reservation', {
+            reservationId: dto.reservationId,
         });
 
         void this.prisma;
 
         return {
             appointmentId: 'appt_mock_456',
-            holdId: dto.holdId,
+            reservationId: dto.reservationId,
             status: AppointmentStatus.BOOKED,
             bookedAt: new Date().toISOString(),
         };
