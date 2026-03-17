@@ -1,5 +1,6 @@
 import { Body, Controller, HttpCode, HttpStatus, Param, Patch, Post } from '@nestjs/common';
 import { ApiBody, ApiCreatedResponse, ApiOkResponse, ApiParam, ApiTags } from '@nestjs/swagger';
+import { AppLoggerService } from '../../common/logger/logger.service';
 import { AppointmentsService } from './appointments.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
@@ -7,7 +8,10 @@ import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 @ApiTags('appointments')
 @Controller('appointments')
 export class AppointmentsController {
-    constructor(private readonly appointmentsService: AppointmentsService) {}
+    constructor(
+        private readonly appointmentsService: AppointmentsService,
+        private readonly logger: AppLoggerService,
+    ) {}
 
     @Post()
     @HttpCode(HttpStatus.CREATED)
@@ -34,6 +38,7 @@ export class AppointmentsController {
         },
     })
     async create(@Body() dto: CreateAppointmentDto) {
+        this.logger.debug('Received confirm booking request', { holdId: dto.holdId });
         return this.appointmentsService.confirmBooking(dto);
     }
 
@@ -62,6 +67,7 @@ export class AppointmentsController {
         },
     })
     async update(@Param('id') id: string, @Body() dto: UpdateAppointmentDto) {
+        this.logger.debug('Received update appointment request', { appointmentId: id });
         return this.appointmentsService.markCompleted(id, dto);
     }
 }

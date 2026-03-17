@@ -1,12 +1,16 @@
 import { Controller, Get, HttpCode, HttpStatus, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { AppLoggerService } from '../../common/logger/logger.service';
 import { GetSlotsQueryDto } from './dto/get-slots-query.dto';
 import { SlotsService } from './slots.service';
 
 @ApiTags('slots')
 @Controller('slots')
 export class SlotsController {
-    constructor(private readonly slotsService: SlotsService) {}
+    constructor(
+        private readonly slotsService: SlotsService,
+        private readonly logger: AppLoggerService,
+    ) {}
 
     @Get()
     @HttpCode(HttpStatus.OK)
@@ -46,6 +50,12 @@ export class SlotsController {
         },
     })
     async findAll(@Query() query: GetSlotsQueryDto) {
+        this.logger.debug('Received get slots request', {
+            dealershipId: query.dealershipId,
+            from: query.from,
+            to: query.to,
+        });
+
         return this.slotsService.getSlots(query);
     }
 }

@@ -1,12 +1,16 @@
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { ApiBody, ApiCreatedResponse, ApiTags } from '@nestjs/swagger';
+import { AppLoggerService } from '../../common/logger/logger.service';
 import { AppointmentHoldsService } from './appointment-holds.service';
 import { CreateAppointmentHoldDto } from './dto/create-appointment-hold.dto';
 
 @ApiTags('appointment-holds')
 @Controller('appointment-holds')
 export class AppointmentHoldsController {
-    constructor(private readonly appointmentHoldsService: AppointmentHoldsService) {}
+    constructor(
+        private readonly appointmentHoldsService: AppointmentHoldsService,
+        private readonly logger: AppLoggerService,
+    ) {}
 
     @Post()
     @HttpCode(HttpStatus.CREATED)
@@ -51,6 +55,11 @@ export class AppointmentHoldsController {
         },
     })
     async create(@Body() dto: CreateAppointmentHoldDto) {
+        this.logger.debug('Received create appointment hold request', {
+            dealershipId: dto.dealershipId,
+            desiredTime: dto.desiredTime,
+        });
+
         return this.appointmentHoldsService.createHold(dto);
     }
 }

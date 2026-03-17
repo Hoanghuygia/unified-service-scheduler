@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { AppLoggerService } from '../../src/common/logger/logger.service';
 import { PrismaService } from '../../src/common/prisma/prisma.service';
 import { AppointmentHoldsService } from '../../src/modules/appointment-holds/appointment-holds.service';
 
@@ -15,6 +16,15 @@ describe('AppointmentHoldsService', () => {
                         appointmentHold: {
                             create: jest.fn(),
                         },
+                    },
+                },
+                {
+                    provide: AppLoggerService,
+                    useValue: {
+                        log: jest.fn(),
+                        warn: jest.fn(),
+                        error: jest.fn(),
+                        debug: jest.fn(),
                     },
                 },
             ],

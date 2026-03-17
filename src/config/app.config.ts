@@ -1,4 +1,5 @@
-export default () => ({
-    port: parseInt(process.env.PORT ?? '3000', 10),
-    databaseUrl: process.env.DATABASE_URL,
-});
+import { registerAs } from '@nestjs/config';
+
+export default registerAs('appMeta', () => ({
+    serviceName: 'unified-service-scheduler',
+}));

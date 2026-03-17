@@ -1,9 +1,12 @@
 import { Controller, Get, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { AppLoggerService } from '../../common/logger/logger.service';
 
 @ApiTags('health')
 @Controller('health')
 export class HealthController {
+    constructor(private readonly logger: AppLoggerService) {}
+
     @Get()
     @HttpCode(HttpStatus.OK)
     @ApiOkResponse({
@@ -16,6 +19,8 @@ export class HealthController {
         },
     })
     getHealth() {
+        this.logger.debug('Health check requested');
+
         return {
             status: 'ok',
             timestamp: new Date().toISOString(),
