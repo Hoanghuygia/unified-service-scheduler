@@ -29,8 +29,8 @@ export class ReservationsService {
             });
 
             return {
-                success: false,
-                message: 'Requested slot is not available',
+                isAvailable: false,
+                reason: 'Requested slot is not available',
                 suggestedSlot: this.getSuggestedSlot(dto.desiredTime),
             };
         }
@@ -45,7 +45,7 @@ export class ReservationsService {
         });
 
         return {
-            success: true,
+            isAvailable: true,
             reservationId: 'd8a43f44-e8d6-4fb2-8f59-d4d1df3efde9',
             status: ReservationStatus.ACTIVE,
             expiresAt,

@@ -13,8 +13,16 @@ export class HealthController {
         description: 'Health check endpoint',
         schema: {
             example: {
-                status: 'ok',
-                timestamp: '2026-03-17T10:00:00.000Z',
+                success: true,
+                data: {
+                    status: 'ok',
+                    timestamp: '2026-03-17T10:00:00.000Z',
+                },
+                message: null,
+                meta: {
+                    timestamp: '2026-03-17T10:00:00.000Z',
+                    requestId: '3e6c28f9-8309-4e39-b128-4f7918589144',
+                },
             },
         },
     })

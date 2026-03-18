@@ -1,9 +1,4 @@
-import {
-    CallHandler,
-    ExecutionContext,
-    Injectable,
-    NestInterceptor,
-} from '@nestjs/common';
+import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import { Observable, catchError, tap, throwError } from 'rxjs';
 import type { Request, Response } from 'express';
 import { AppLoggerService } from './logger.service';
@@ -25,6 +20,7 @@ export class RequestLoggingInterceptor implements NestInterceptor {
         this.logger.log('Incoming request', {
             method: request.method,
             path: request.originalUrl,
+            requestId: request.requestId,
         });
 
         return next.handle().pipe(
@@ -34,6 +30,7 @@ export class RequestLoggingInterceptor implements NestInterceptor {
                     path: request.originalUrl,
                     statusCode: response.statusCode,
                     durationMs: Date.now() - startedAt,
+                    requestId: request.requestId,
                 });
             }),
             catchError((error: Error) => {
@@ -42,6 +39,7 @@ export class RequestLoggingInterceptor implements NestInterceptor {
                     path: request.originalUrl,
                     statusCode: response.statusCode,
                     durationMs: Date.now() - startedAt,
+                    requestId: request.requestId,
                 });
 
                 return throwError(() => error);

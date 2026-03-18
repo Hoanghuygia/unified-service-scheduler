@@ -30,10 +30,19 @@ export class AppointmentsController {
         description: 'Appointment created from a valid reservation',
         schema: {
             example: {
-                appointmentId: 'appt_mock_456',
-                reservationId: 'd8a43f44-e8d6-4fb2-8f59-d4d1df3efde9',
-                status: 'BOOKED',
-                bookedAt: '2026-03-17T12:10:00.000Z',
+                success: true,
+                data: {
+                    message: 'Appointment booked successfully',
+                    appointmentId: 'appt_mock_456',
+                    reservationId: 'd8a43f44-e8d6-4fb2-8f59-d4d1df3efde9',
+                    status: 'BOOKED',
+                    bookedAt: '2026-03-17T12:10:00.000Z',
+                },
+                message: null,
+                meta: {
+                    timestamp: '2026-03-17T12:10:00.000Z',
+                    requestId: '3e6c28f9-8309-4e39-b128-4f7918589144',
+                },
             },
         },
     })
@@ -60,9 +69,17 @@ export class AppointmentsController {
         description: 'Appointment marked as completed',
         schema: {
             example: {
-                appointmentId: 'appt_mock_456',
-                status: 'COMPLETED',
-                completedAt: '2026-03-17T14:00:00.000Z',
+                success: true,
+                data: {
+                    appointmentId: 'appt_mock_456',
+                    status: 'COMPLETED',
+                    completedAt: '2026-03-17T14:00:00.000Z',
+                },
+                message: null,
+                meta: {
+                    timestamp: '2026-03-17T14:00:00.000Z',
+                    requestId: '3e6c28f9-8309-4e39-b128-4f7918589144',
+                },
             },
         },
     })

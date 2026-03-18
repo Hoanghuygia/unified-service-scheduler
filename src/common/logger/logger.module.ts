@@ -2,11 +2,7 @@ import { Global, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { WinstonModule } from 'nest-winston';
 import { addColors, format, transports } from 'winston';
-import {
-    LOGGER_COLORS,
-    LOGGER_LEVELS,
-    type LoggerLevel,
-} from '../../config/logger.config';
+import { LOGGER_COLORS, LOGGER_LEVELS, type LoggerLevel } from '../../config/logger.config';
 import { RequestContextService } from '../request-context/request-context.service';
 import { AppLoggerService } from './logger.service';
 import { RequestLoggingInterceptor } from './request-logging.interceptor';
@@ -29,10 +25,19 @@ addColors(LOGGER_COLORS);
                     colorize({ all: true }),
                     timestamp(),
                     errors({ stack: true }),
-                    printf(({ level: logLevel, message, timestamp: logTimestamp, context, ...meta }) => {
-                        const metadata = Object.keys(meta).length > 0 ? ` ${JSON.stringify(meta)}` : '';
-                        return `[${logTimestamp}] [${logLevel}] [${context ?? 'Application'}] ${message}${metadata}`;
-                    }),
+                    printf(
+                        ({
+                            level: logLevel,
+                            message,
+                            timestamp: logTimestamp,
+                            context,
+                            ...meta
+                        }) => {
+                            const metadata =
+                                Object.keys(meta).length > 0 ? ` ${JSON.stringify(meta)}` : '';
+                            return `[${logTimestamp}] [${logLevel}] [${context ?? 'Application'}] ${message}${metadata}`;
+                        },
+                    ),
                 );
 
                 return {

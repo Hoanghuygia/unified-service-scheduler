@@ -35,20 +35,36 @@ export class ReservationsController {
                 reservationCreated: {
                     value: {
                         success: true,
-                        reservationId: 'd8a43f44-e8d6-4fb2-8f59-d4d1df3efde9',
-                        status: 'ACTIVE',
-                        expiresAt: '2026-03-17T12:07:00.000Z',
-                        dealershipId: '8ec56f3e-4e8d-4fef-a31a-9f89e843e70f',
-                        serviceTypeId: '4c4f1960-a95b-4e60-b45f-e58bde8d0ec0',
-                        vehicleId: 'c7bbf5f3-8f57-4452-95a6-a66cd4afe5f6',
-                        desiredTime: '2026-03-17T12:00:00.000Z',
+                        data: {
+                            isAvailable: true,
+                            reservationId: 'd8a43f44-e8d6-4fb2-8f59-d4d1df3efde9',
+                            status: 'ACTIVE',
+                            expiresAt: '2026-03-17T12:07:00.000Z',
+                            dealershipId: '8ec56f3e-4e8d-4fef-a31a-9f89e843e70f',
+                            serviceTypeId: '4c4f1960-a95b-4e60-b45f-e58bde8d0ec0',
+                            vehicleId: 'c7bbf5f3-8f57-4452-95a6-a66cd4afe5f6',
+                            desiredTime: '2026-03-17T12:00:00.000Z',
+                        },
+                        message: null,
+                        meta: {
+                            timestamp: '2026-03-17T12:00:00.000Z',
+                            requestId: '3e6c28f9-8309-4e39-b128-4f7918589144',
+                        },
                     },
                 },
                 suggestedSlot: {
                     value: {
-                        success: false,
-                        message: 'Requested slot is not available',
-                        suggestedSlot: '2026-03-17T12:30:00.000Z',
+                        success: true,
+                        data: {
+                            isAvailable: false,
+                            reason: 'Requested slot is not available',
+                            suggestedSlot: '2026-03-17T12:30:00.000Z',
+                        },
+                        message: null,
+                        meta: {
+                            timestamp: '2026-03-17T12:00:00.000Z',
+                            requestId: '3e6c28f9-8309-4e39-b128-4f7918589144',
+                        },
                     },
                 },
             },

@@ -8,7 +8,9 @@ import appConfig from './config/app.config';
 import { validateEnv } from './config/env.validation';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { LoggerModule } from './common/logger/logger.module';
-import { RequestContextMiddleware } from './common/request-context/request-context.middleware';
+import { RequestIdMiddleware } from './common/request-context/request-context.middleware';
+import { ResponseInterceptor } from './common/http/interceptors/response.interceptor';
+import { GlobalExceptionFilter } from './common/http/filters/global-exception.filter';
 
 @Module({
     imports: [
@@ -25,10 +27,11 @@ import { RequestContextMiddleware } from './common/request-context/request-conte
         AppointmentsModule,
         SlotsModule,
     ],
+    providers: [ResponseInterceptor, GlobalExceptionFilter],
 })
 export class AppModule implements NestModule {
     configure(consumer: MiddlewareConsumer): void {
-        consumer.apply(RequestContextMiddleware).forRoutes({
+        consumer.apply(RequestIdMiddleware).forRoutes({
             path: '*',
             method: RequestMethod.ALL,
         });

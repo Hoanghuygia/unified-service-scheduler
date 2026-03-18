@@ -29,7 +29,11 @@ export class AppLoggerService {
         this.write('warn', message, metadata);
     }
 
-    error(message: string, errorOrMetadata?: Error | LoggerMetadata, metadata: LoggerMetadata = {}): void {
+    error(
+        message: string,
+        errorOrMetadata?: Error | LoggerMetadata,
+        metadata: LoggerMetadata = {},
+    ): void {
         if (errorOrMetadata instanceof Error) {
             this.write('error', message, {
                 ...metadata,
@@ -42,7 +46,11 @@ export class AppLoggerService {
         this.write('error', message, errorOrMetadata ?? {});
     }
 
-    private write(level: 'info' | 'warn' | 'error' | 'debug', message: string, metadata: LoggerMetadata): void {
+    private write(
+        level: 'info' | 'warn' | 'error' | 'debug',
+        message: string,
+        metadata: LoggerMetadata,
+    ): void {
         const context = this.requestContext.getContext();
 
         this.logger.log(level, message, {

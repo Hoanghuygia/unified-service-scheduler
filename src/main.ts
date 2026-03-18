@@ -4,6 +4,8 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { AppModule } from './app.module';
+import { GlobalExceptionFilter } from './common/http/filters/global-exception.filter';
+import { ResponseInterceptor } from './common/http/interceptors/response.interceptor';
 import { RequestLoggingInterceptor } from './common/logger/request-logging.interceptor';
 
 async function bootstrap() {
@@ -19,7 +21,8 @@ async function bootstrap() {
         }),
     );
 
-    app.useGlobalInterceptors(app.get(RequestLoggingInterceptor));
+    app.useGlobalInterceptors(app.get(RequestLoggingInterceptor), app.get(ResponseInterceptor));
+    app.useGlobalFilters(app.get(GlobalExceptionFilter));
 
     const swaggerConfig = new DocumentBuilder()
         .setTitle('Unified Service Scheduler API')

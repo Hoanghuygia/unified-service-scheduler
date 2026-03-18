@@ -2,6 +2,9 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../../src/app.module';
+import { GlobalExceptionFilter } from '../../src/common/http/filters/global-exception.filter';
+import { ResponseInterceptor } from '../../src/common/http/interceptors/response.interceptor';
+import { RequestLoggingInterceptor } from '../../src/common/logger/request-logging.interceptor';
 
 describe('API Endpoints (e2e)', () => {
     let app: INestApplication;
@@ -19,6 +22,11 @@ describe('API Endpoints (e2e)', () => {
                 forbidNonWhitelisted: true,
             }),
         );
+        app.useGlobalInterceptors(
+            moduleFixture.get(RequestLoggingInterceptor),
+            moduleFixture.get(ResponseInterceptor),
+        );
+        app.useGlobalFilters(moduleFixture.get(GlobalExceptionFilter));
         await app.init();
     });
 
@@ -38,6 +46,8 @@ describe('API Endpoints (e2e)', () => {
             .expect(201);
 
         expect(response.body).toHaveProperty('success');
+        expect(response.body).toHaveProperty('data');
+        expect(response.body).toHaveProperty('meta.requestId');
     });
 
     it('POST /appointments returns 201', async () => {
@@ -66,6 +76,6 @@ describe('API Endpoints (e2e)', () => {
             })
             .expect(200);
 
-        expect(Array.isArray(response.body.slots)).toBe(true);
+        expect(Array.isArray(response.body.data.slots)).toBe(true);
     });
 });

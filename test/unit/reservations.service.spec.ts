@@ -43,7 +43,7 @@ describe('ReservationsService', () => {
             desiredTime: '2026-03-17T12:00:00.000Z',
         });
 
-        expect(result.success).toBe(true);
+        expect(result.isAvailable).toBe(true);
         expect(result).toHaveProperty('reservationId');
         expect(result).toHaveProperty('expiresAt');
     });
@@ -58,7 +58,7 @@ describe('ReservationsService', () => {
             desiredTime: '2026-03-17T12:00:00.000Z',
         });
 
-        expect(result.success).toBe(false);
+        expect(result.isAvailable).toBe(false);
         expect(result).toHaveProperty('suggestedSlot');
     });
 });

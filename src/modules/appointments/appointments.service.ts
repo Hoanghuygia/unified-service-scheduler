@@ -20,6 +20,7 @@ export class AppointmentsService {
         void this.prisma;
 
         return {
+            message: 'Appointment booked successfully',
             appointmentId: 'appt_mock_456',
             reservationId: dto.reservationId,
             status: AppointmentStatus.BOOKED,
