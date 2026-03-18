@@ -1,10 +1,19 @@
 import { Injectable } from '@nestjs/common';
+import { AppLoggerService } from '../../common/logger/logger.service';
 import { SlotStatus } from '../../common/enums/slot-status.enum';
 import { GetSlotsQueryDto } from './dto/get-slots-query.dto';
 
 @Injectable()
 export class SlotsService {
+    constructor(private readonly logger: AppLoggerService) {}
+
     async getSlots(query: GetSlotsQueryDto) {
+        this.logger.log('Fetching slots for dealership', {
+            dealershipId: query.dealershipId,
+            from: query.from,
+            to: query.to,
+        });
+
         return {
             dealershipId: query.dealershipId,
             from: query.from,
@@ -32,5 +41,12 @@ export class SlotsService {
                 },
             ],
         };
+    }
+
+    async runAvailabilityRefreshJob(jobId: string): Promise<void> {
+        this.logger.log('Processing job', {
+            jobId,
+            traceId: jobId,
+        });
     }
 }

@@ -1,10 +1,17 @@
 import { ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { AppModule } from './app.module';
+import { GlobalExceptionFilter } from './common/http/filters/global-exception.filter';
+import { ResponseInterceptor } from './common/http/interceptors/response.interceptor';
+import { RequestLoggingInterceptor } from './common/logger/request-logging.interceptor';
 
 async function bootstrap() {
-    const app = await NestFactory.create(AppModule);
+    const app = await NestFactory.create(AppModule, { bufferLogs: true });
+
+    app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
 
     app.useGlobalPipes(
         new ValidationPipe({
@@ -14,12 +21,15 @@ async function bootstrap() {
         }),
     );
 
+    app.useGlobalInterceptors(app.get(RequestLoggingInterceptor), app.get(ResponseInterceptor));
+    app.useGlobalFilters(app.get(GlobalExceptionFilter));
+
     const swaggerConfig = new DocumentBuilder()
         .setTitle('Unified Service Scheduler API')
         .setDescription('Vehicle service appointment booking system API')
         .setVersion('1.0.0')
         .addTag('health')
-        .addTag('appointment-holds')
+        .addTag('reservations')
         .addTag('appointments')
         .addTag('slots')
         .build();
@@ -27,7 +37,8 @@ async function bootstrap() {
     const document = SwaggerModule.createDocument(app, swaggerConfig);
     SwaggerModule.setup('api-docs', app, document);
 
-    const port = process.env.PORT ? Number(process.env.PORT) : 3000;
+    const configService = app.get(ConfigService);
+    const port = configService.getOrThrow<number>('app.port');
     await app.listen(port);
 }
 

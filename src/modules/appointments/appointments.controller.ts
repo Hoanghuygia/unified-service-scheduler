@@ -1,5 +1,6 @@
 import { Body, Controller, HttpCode, HttpStatus, Param, Patch, Post } from '@nestjs/common';
 import { ApiBody, ApiCreatedResponse, ApiOkResponse, ApiParam, ApiTags } from '@nestjs/swagger';
+import { AppLoggerService } from '../../common/logger/logger.service';
 import { AppointmentsService } from './appointments.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
@@ -7,33 +8,46 @@ import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 @ApiTags('appointments')
 @Controller('appointments')
 export class AppointmentsController {
-    constructor(private readonly appointmentsService: AppointmentsService) {}
+    constructor(
+        private readonly appointmentsService: AppointmentsService,
+        private readonly logger: AppLoggerService,
+    ) {}
 
     @Post()
     @HttpCode(HttpStatus.CREATED)
     @ApiBody({
         type: CreateAppointmentDto,
         examples: {
-            confirmFromHold: {
-                summary: 'Confirm booking from hold',
+            confirmFromReservation: {
+                summary: 'Confirm booking from reservation',
                 value: {
-                    holdId: 'd8a43f44-e8d6-4fb2-8f59-d4d1df3efde9',
+                    reservationId: 'd8a43f44-e8d6-4fb2-8f59-d4d1df3efde9',
                 },
             },
         },
     })
     @ApiCreatedResponse({
-        description: 'Appointment created from a valid hold',
+        description: 'Appointment created from a valid reservation',
         schema: {
             example: {
-                appointmentId: 'appt_mock_456',
-                holdId: 'd8a43f44-e8d6-4fb2-8f59-d4d1df3efde9',
-                status: 'BOOKED',
-                bookedAt: '2026-03-17T12:10:00.000Z',
+                success: true,
+                data: {
+                    message: 'Appointment booked successfully',
+                    appointmentId: 'appt_mock_456',
+                    reservationId: 'd8a43f44-e8d6-4fb2-8f59-d4d1df3efde9',
+                    status: 'BOOKED',
+                    bookedAt: '2026-03-17T12:10:00.000Z',
+                },
+                message: null,
+                meta: {
+                    timestamp: '2026-03-17T12:10:00.000Z',
+                    requestId: '3e6c28f9-8309-4e39-b128-4f7918589144',
+                },
             },
         },
     })
     async create(@Body() dto: CreateAppointmentDto) {
+        this.logger.debug('Received confirm booking request', { reservationId: dto.reservationId });
         return this.appointmentsService.confirmBooking(dto);
     }
 
@@ -55,13 +69,22 @@ export class AppointmentsController {
         description: 'Appointment marked as completed',
         schema: {
             example: {
-                appointmentId: 'appt_mock_456',
-                status: 'COMPLETED',
-                completedAt: '2026-03-17T14:00:00.000Z',
+                success: true,
+                data: {
+                    appointmentId: 'appt_mock_456',
+                    status: 'COMPLETED',
+                    completedAt: '2026-03-17T14:00:00.000Z',
+                },
+                message: null,
+                meta: {
+                    timestamp: '2026-03-17T14:00:00.000Z',
+                    requestId: '3e6c28f9-8309-4e39-b128-4f7918589144',
+                },
             },
         },
     })
     async update(@Param('id') id: string, @Body() dto: UpdateAppointmentDto) {
+        this.logger.debug('Received update appointment request', { appointmentId: id });
         return this.appointmentsService.markCompleted(id, dto);
     }
 }
