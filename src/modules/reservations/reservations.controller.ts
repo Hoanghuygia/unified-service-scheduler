@@ -1,5 +1,5 @@
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
-import { ApiBody, ApiCreatedResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiCreatedResponse, ApiNotFoundResponse, ApiTags } from '@nestjs/swagger';
 import { AppLoggerService } from '../../common/logger/logger.service';
 import { ReservationsService } from './reservations.service';
 import { CreateReservationDto } from './dto/create-reservation.dto';
@@ -21,7 +21,19 @@ export class ReservationsController {
                 summary: 'Create reservation',
                 value: {
                     vehicleId: 'c7bbf5f3-8f57-4452-95a6-a66cd4afe5f6',
-                    serviceTypeId: '4c4f1960-a95b-4e60-b45f-e58bde8d0ec0',
+                    serviceTypeIds: ['4c4f1960-a95b-4e60-b45f-e58bde8d0ec0'],
+                    dealershipId: '8ec56f3e-4e8d-4fef-a31a-9f89e843e70f',
+                    desiredTime: '2026-03-17T12:00:00.000Z',
+                },
+            },
+            multipleServices: {
+                summary: 'Create reservation with multiple service types',
+                value: {
+                    vehicleId: 'c7bbf5f3-8f57-4452-95a6-a66cd4afe5f6',
+                    serviceTypeIds: [
+                        '4c4f1960-a95b-4e60-b45f-e58bde8d0ec0',
+                        '9d1a2b3c-4e5f-6a7b-8c9d-0e1f2a3b4c5d',
+                    ],
                     dealershipId: '8ec56f3e-4e8d-4fef-a31a-9f89e843e70f',
                     desiredTime: '2026-03-17T12:00:00.000Z',
                 },
@@ -29,21 +41,19 @@ export class ReservationsController {
         },
     })
     @ApiCreatedResponse({
-        description: 'Reservation created or suggestion returned when unavailable',
+        description: 'Reservation created, or recommendations returned when unavailable',
         schema: {
             examples: {
                 reservationCreated: {
+                    summary: 'Desired slot was available',
                     value: {
                         success: true,
                         data: {
                             isAvailable: true,
                             reservationId: 'd8a43f44-e8d6-4fb2-8f59-d4d1df3efde9',
-                            status: 'ACTIVE',
-                            expiresAt: '2026-03-17T12:07:00.000Z',
-                            dealershipId: '8ec56f3e-4e8d-4fef-a31a-9f89e843e70f',
-                            serviceTypeId: '4c4f1960-a95b-4e60-b45f-e58bde8d0ec0',
-                            vehicleId: 'c7bbf5f3-8f57-4452-95a6-a66cd4afe5f6',
-                            desiredTime: '2026-03-17T12:00:00.000Z',
+                            startTime: '2026-03-17T12:00:00.000Z',
+                            endTime: '2026-03-17T13:00:00.000Z',
+                            expiresAt: '2026-03-17T12:15:00.000Z',
                         },
                         message: null,
                         meta: {
@@ -52,13 +62,33 @@ export class ReservationsController {
                         },
                     },
                 },
-                suggestedSlot: {
+                recommendations: {
+                    summary: 'Desired slot unavailable — alternatives offered + first auto-held',
                     value: {
                         success: true,
                         data: {
                             isAvailable: false,
                             reason: 'Requested slot is not available',
-                            suggestedSlot: '2026-03-17T12:30:00.000Z',
+                            recommendations: [
+                                {
+                                    startTime: '2026-03-17T12:15:00.000Z',
+                                    endTime: '2026-03-17T13:15:00.000Z',
+                                },
+                                {
+                                    startTime: '2026-03-17T12:30:00.000Z',
+                                    endTime: '2026-03-17T13:30:00.000Z',
+                                },
+                                {
+                                    startTime: '2026-03-17T12:45:00.000Z',
+                                    endTime: '2026-03-17T13:45:00.000Z',
+                                },
+                            ],
+                            heldRecommendation: {
+                                reservationId: 'e1a43f44-e8d6-4fb2-8f59-d4d1df3efde9',
+                                startTime: '2026-03-17T12:15:00.000Z',
+                                endTime: '2026-03-17T13:15:00.000Z',
+                                expiresAt: '2026-03-17T12:05:00.000Z',
+                            },
                         },
                         message: null,
                         meta: {
@@ -70,10 +100,12 @@ export class ReservationsController {
             },
         },
     })
-    async create(@Body() dto: CreateReservationDto) {
+    @ApiNotFoundResponse({ description: 'Dealership or ServiceType not found' })
+    async create(@Body() dto: CreateReservationDto): Promise<unknown> {
         this.logger.debug('Received create reservation request', {
             dealershipId: dto.dealershipId,
             desiredTime: dto.desiredTime,
+            serviceTypeCount: dto.serviceTypeIds.length,
         });
 
         return this.reservationsService.createReservation(dto);
