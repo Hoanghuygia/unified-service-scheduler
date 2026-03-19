@@ -19,47 +19,47 @@ enum ReservationStatus {
 }
 
 model Dealership {
-  id           String        @id @default(uuid())
+  id           String                          @id @default(uuid())
   name         String
   serviceBays  ServiceBay[]
   appointments Appointment[]
   reservations Reservation[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  createdAt    DateTime                        @default(now())
+  updatedAt    DateTime                        @updatedAt
 }
 
 model Technician {
-  id           String        @id @default(uuid())
+  id           String                          @id @default(uuid())
   firstName    String
   lastName     String
-  email        String        @unique
+  email        String                          @unique
   appointments Appointment[]
   reservations Reservation[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  createdAt    DateTime                        @default(now())
+  updatedAt    DateTime                        @updatedAt
 }
 
 model ServiceBay {
-  id           String        @id @default(uuid())
+  id           String                          @id @default(uuid())
   name         String
   dealershipId String
-  dealership   Dealership    @relation(fields: [dealershipId], references: [id])
+  dealership   Dealership                      @relation(fields: [dealershipId], references: [id])
   appointments Appointment[]
   reservations Reservation[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  createdAt    DateTime                        @default(now())
+  updatedAt    DateTime                        @updatedAt
 
   @@index([dealershipId])
 }
 
 model ServiceType {
-  id                      String                   @id @default(uuid())
+  id                      String                @id @default(uuid())
   name                    String
   durationMinutes         Int
   appointmentServiceTypes AppointmentServiceType[]
   reservationServiceTypes ReservationServiceType[]
-  createdAt               DateTime                 @default(now())
-  updatedAt               DateTime                 @updatedAt
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime              @updatedAt
 }
 
 model Appointment {
