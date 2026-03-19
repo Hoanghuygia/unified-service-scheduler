@@ -41,6 +41,3 @@ jobs:
 
       - name: Build
         run: npm run build
-
-      - name: Build Docker image
-        run: docker build -t unified-service-scheduler:${{ github.sha }} .
