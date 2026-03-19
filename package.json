@@ -16,7 +16,8 @@
     "test:cov": "jest --coverage --config jest.config.ts",
     "test:e2e": "jest --config test/jest-e2e.json",
     "db:seed": "prisma db seed",
-    "db:init": "prisma migrate dev --name init && prisma db seed"
+    "db:init": "prisma migrate dev --name init && prisma db seed",
+    "prisma:studio": "npx prisma studio"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"

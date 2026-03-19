@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { AppointmentStatus } from '../../common/enums/appointment-status.enum';
 import { ReservationStatus } from '../../common/enums/reservation-status.enum';
@@ -7,7 +7,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 
 const HOLD_MINUTES = 15;
-const SHORT_HOLD_MINUTES = 5;
+const SHORT_HOLD_MINUTES = 3;
 const RECOMMENDATION_WINDOW_HOURS = 3;
 const RECOMMENDATION_STEP_MINUTES = 15;
 const RECOMMENDATION_LIMIT = 3;
@@ -22,6 +22,7 @@ interface BookingEntry {
     endTime: Date;
     technicianId: string | null;
     serviceBayId: string | null;
+    expiresAt?: Date | null;
 }
 
 interface TimeSlot {
@@ -36,17 +37,60 @@ export class ReservationsService {
         private readonly logger: AppLoggerService,
     ) {}
 
+    async cancelReservation(reservationId: string) {
+        this.logger.log('Cancelling reservation', {
+            reservationId,
+            action: 'cancel reservation',
+        });
+
+        return this.prisma.$transaction(async (tx) => {
+            const reservation = await tx.reservation.findUnique({
+                where: { id: reservationId },
+            });
+
+            if (!reservation) {
+                this.logger.warn('Reservation cancellation failed: reservation not found', {
+                    reservationId,
+                    action: 'cancel reservation',
+                });
+                throw new NotFoundException(`Reservation ${reservationId} not found`);
+            }
+
+            if (reservation.status !== ReservationStatus.ACTIVE) {
+                this.logger.warn('Reservation cancellation failed: reservation is not active', {
+                    reservationId,
+                    action: 'cancel reservation',
+                    status: reservation.status,
+                });
+                throw new BadRequestException('Cannot cancel a non-active reservation');
+            }
+
+            const cancelledReservation = await tx.reservation.update({
+                where: { id: reservationId },
+                data: {
+                    status: ReservationStatus.EXPIRED,
+                    expiresAt: new Date(),
+                },
+            });
+
+            this.logger.log('Reservation cancelled', {
+                reservationId: cancelledReservation.id,
+                action: 'cancel reservation',
+                status: cancelledReservation.status,
+            });
+
+            return {
+                message: 'Reservation cancelled successfully',
+                ...cancelledReservation,
+            };
+        });
+    }
+
     async createReservation(dto: CreateReservationDto) {
+        this.logger.debug('Received reservation request', { dto }); 
         const { vehicleId, dealershipId, serviceTypeIds, desiredTime } = dto;
         const now = new Date();
         const startTime = new Date(desiredTime);
-
-        this.logger.log('Creating reservation', {
-            vehicleId,
-            dealershipId,
-            serviceTypeCount: serviceTypeIds.length,
-            desiredTime,
-        });
 
         // Validate dealership and service types before the transaction to keep it short
         const [dealership, serviceTypes] = await Promise.all([
@@ -78,12 +122,13 @@ export class ReservationsService {
 
         return this.prisma.$transaction(
             async (tx) => {
-                // Acquire per-dealership advisory lock — prevents concurrent double-booking
-                // for the same dealership without requiring Serializable isolation
-                const lockKey = `reservation:${dealershipId}`;
+                // Lock only the exact slot being requested, so independent slots can proceed
+                // concurrently while duplicate booking attempts serialize on the same window.
+                const lockKey = `reservation:${dealershipId}:${startTime.toISOString()}:${endTime.toISOString()}`;
                 await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`;
 
                 // Batch-fetch all resources and overlapping bookings in a single round-trip
+                // The bouding time for fetching bookings for recomendation
                 const searchWindowEnd = new Date(
                     startTime.getTime() +
                         (RECOMMENDATION_WINDOW_HOURS * 60 + totalDurationMinutes) * 60_000,
@@ -95,7 +140,13 @@ export class ReservationsService {
                         where: { dealershipId },
                         select: { id: true },
                     }),
-                    this.fetchBookingsInWindow(tx, startTime, searchWindowEnd, now),
+                    this.fetchBookingsInWindow(
+                        tx,
+                        dealershipId,
+                        startTime,
+                        searchWindowEnd,
+                        now,
+                    ),
                 ]);
 
                 // ── Happy path: desired slot is available ──────────────────────────────
@@ -106,6 +157,10 @@ export class ReservationsService {
                     startTime,
                     endTime,
                 );
+
+                this.logger.debug('Initial slot availability check', {
+                    initialResources
+                });
 
                 if (initialResources) {
                     this.logger.log('Slot available — creating reservation', {
@@ -244,6 +299,7 @@ export class ReservationsService {
      */
     private async fetchBookingsInWindow(
         tx: Prisma.TransactionClient,
+        dealershipId: string,
         windowStart: Date,
         windowEnd: Date,
         now: Date,
@@ -259,18 +315,37 @@ export class ReservationsService {
             serviceBayId: true,
         };
 
+        // Lazy expiration keeps persisted state eventually consistent without a cron.
+        // We still rely on expiresAt in reads, but this update prevents stale ACTIVE rows.
+        await tx.reservation.updateMany({
+            where: {
+                dealershipId,
+                status: ReservationStatus.ACTIVE,
+                expiresAt: { lte: now },
+            },
+            data: { status: ReservationStatus.EXPIRED },
+        });
+
         const [appointments, reservations] = await Promise.all([
             tx.appointment.findMany({
-                where: { status: AppointmentStatus.BOOKED, ...overlapFilter },
+                where: {
+                    dealershipId,
+                    status: AppointmentStatus.BOOKED,
+                    ...overlapFilter,
+                },
                 select: selectFields,
             }),
             tx.reservation.findMany({
                 where: {
+                    dealershipId,
                     status: ReservationStatus.ACTIVE,
                     expiresAt: { gt: now },
                     ...overlapFilter,
                 },
-                select: selectFields,
+                select: {
+                    ...selectFields,
+                    expiresAt: true,
+                },
             }),
         ]);
 
@@ -289,9 +364,21 @@ export class ReservationsService {
         startTime: Date,
         endTime: Date,
     ): AvailableResources | null {
-        const conflicting = bookings.filter(
-            (b) => b.startTime < endTime && b.endTime > startTime,
-        );
+        const now = new Date();
+        const conflicting = bookings.filter((b) => {
+            const overlaps = b.startTime < endTime && b.endTime > startTime;
+            if (!overlaps) return false;
+
+            // Reservations are blocking only when not expired.
+            if (b.expiresAt) {
+                return b.expiresAt > now;
+            }
+
+            // Appointments do not have expiresAt and always block when BOOKED.
+            return true;
+        });
+
+        this.logger.debug('Checking resource availability', {conflicting});
 
         const blockedTechIds = new Set(
             conflicting
