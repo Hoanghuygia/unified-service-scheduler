@@ -8,6 +8,7 @@ import { AppointmentsService } from '../../src/modules/appointments/appointments
 
 describe('AppointmentsService', () => {
     let service: AppointmentsService;
+    let fixedNow: Date;
     let prisma: {
         $transaction: jest.Mock;
         appointment: {
@@ -45,6 +46,13 @@ describe('AppointmentsService', () => {
         createdAt: new Date('2027-03-17T12:10:00.000Z'),
         status: AppointmentStatus.BOOKED,
     };
+
+    const lifecycleAppointment = (overrides: Record<string, unknown> = {}) => ({
+        id: 'appt-123',
+        status: AppointmentStatus.BOOKED,
+        startTime: new Date('2026-03-18T10:00:00.000Z'),
+        ...overrides,
+    });
 
     beforeEach(async () => {
         const tx = {
@@ -91,6 +99,8 @@ describe('AppointmentsService', () => {
         }).compile();
 
         service = module.get<AppointmentsService>(AppointmentsService);
+        fixedNow = new Date('2026-03-19T10:00:00.000Z');
+        jest.spyOn(service as any, 'getUtcNow').mockReturnValue(fixedNow);
     });
 
     it('should create an appointment from an active reservation', async () => {
@@ -180,15 +190,116 @@ describe('AppointmentsService', () => {
     });
 
     it('should mark appointment as completed', async () => {
-        const result = await service.markCompleted('appt_mock_456', {
-            completedAt: '2026-03-17T14:00:00.000Z',
-        });
+        prisma.appointment.findUnique.mockResolvedValue(
+            lifecycleAppointment({ startTime: new Date('2026-03-18T08:00:00.000Z') }),
+        );
+        prisma.appointment.update.mockResolvedValue(undefined);
+
+        const result = await service.completeAppointment('appt_mock_456');
 
         expect(result).toEqual(
             expect.objectContaining({
-                appointmentId: 'appt_mock_456',
+                appointmentId: 'appt-123',
                 status: 'COMPLETED',
+                message: 'Appointment marked as completed',
             }),
+        );
+        expect(prisma.appointment.update).toHaveBeenCalledWith({
+            where: { id: 'appt-123' },
+            data: { status: AppointmentStatus.COMPLETED },
+        });
+    });
+
+    it('should return idempotent response when appointment is already completed', async () => {
+        prisma.appointment.findUnique.mockResolvedValue(
+            lifecycleAppointment({ status: AppointmentStatus.COMPLETED }),
+        );
+
+        const result = await service.completeAppointment('appt-123');
+
+        expect(result).toEqual(
+            expect.objectContaining({
+                appointmentId: 'appt-123',
+                status: AppointmentStatus.COMPLETED,
+            }),
+        );
+        expect(prisma.appointment.update).not.toHaveBeenCalled();
+    });
+
+    it('should reject completion when appointment is cancelled', async () => {
+        prisma.appointment.findUnique.mockResolvedValue(
+            lifecycleAppointment({ status: AppointmentStatus.CANCELLED }),
+        );
+
+        await expect(service.completeAppointment('appt-123')).rejects.toBeInstanceOf(
+            BadRequestException,
+        );
+    });
+
+    it('should cancel booked appointment when start time is at least 24 hours away', async () => {
+        prisma.appointment.findUnique.mockResolvedValue(
+            lifecycleAppointment({ startTime: new Date('2026-03-20T10:00:00.000Z') }),
+        );
+        prisma.appointment.update.mockResolvedValue(undefined);
+
+        const result = await service.cancelAppointment('appt-123');
+
+        expect(result).toEqual(
+            expect.objectContaining({
+                appointmentId: 'appt-123',
+                status: AppointmentStatus.CANCELLED,
+            }),
+        );
+        expect(prisma.appointment.update).toHaveBeenCalledWith({
+            where: { id: 'appt-123' },
+            data: { status: AppointmentStatus.CANCELLED },
+        });
+    });
+
+    it('should reject cancellation when appointment is less than 24 hours away', async () => {
+        prisma.appointment.findUnique.mockResolvedValue(
+            lifecycleAppointment({ startTime: new Date('2026-03-20T09:59:00.000Z') }),
+        );
+
+        await expect(service.cancelAppointment('appt-123')).rejects.toBeInstanceOf(
+            BadRequestException,
+        );
+    });
+
+    it('should return idempotent response when appointment is already cancelled', async () => {
+        prisma.appointment.findUnique.mockResolvedValue(
+            lifecycleAppointment({ status: AppointmentStatus.CANCELLED }),
+        );
+
+        const result = await service.cancelAppointment('appt-123');
+
+        expect(result).toEqual(
+            expect.objectContaining({
+                appointmentId: 'appt-123',
+                status: AppointmentStatus.CANCELLED,
+            }),
+        );
+        expect(prisma.appointment.update).not.toHaveBeenCalled();
+    });
+
+    it('should reject cancellation when appointment is completed', async () => {
+        prisma.appointment.findUnique.mockResolvedValue(
+            lifecycleAppointment({ status: AppointmentStatus.COMPLETED }),
+        );
+
+        await expect(service.cancelAppointment('appt-123')).rejects.toBeInstanceOf(
+            BadRequestException,
+        );
+    });
+
+    it('should throw not found for complete and cancel when appointment does not exist', async () => {
+        prisma.appointment.findUnique.mockResolvedValue(null);
+
+        await expect(service.completeAppointment('missing')).rejects.toBeInstanceOf(
+            NotFoundException,
+        );
+        await expect(service.cancelAppointment('missing')).rejects.toBeInstanceOf(
+            NotFoundException,
         );
     });
 });

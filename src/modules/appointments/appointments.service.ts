@@ -10,13 +10,20 @@ import { ReservationStatus } from '../../common/enums/reservation-status.enum';
 import { AppLoggerService } from '../../common/logger/logger.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
-import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 
 const CONFIRM_APPOINTMENT_TRANSACTION_OPTIONS = {
     isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
     maxWait: 5000,
     timeout: 15000,
 } as const;
+
+const APPOINTMENT_LIFECYCLE_TRANSACTION_OPTIONS = {
+    isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+    maxWait: 5000,
+    timeout: 10000,
+} as const;
+
+const CANCELLATION_WINDOW_HOURS = 24;
 
 type ReservationForConfirmation = Prisma.ReservationGetPayload<{
     include: {
@@ -34,6 +41,12 @@ type AppointmentForResponse = {
     status: string;
 };
 
+type AppointmentLifecycleRecord = {
+    id: string;
+    status: string;
+    startTime: Date;
+};
+
 type ConfirmationResult = 'created' | 'already_confirmed';
 
 interface ConfirmAppointmentResponse {
@@ -43,6 +56,12 @@ interface ConfirmAppointmentResponse {
     status: AppointmentStatus;
     bookedAt: string;
     confirmationResult: ConfirmationResult;
+}
+
+interface AppointmentStatusResponse {
+    message: string;
+    appointmentId: string;
+    status: AppointmentStatus;
 }
 
 @Injectable()
@@ -78,22 +97,116 @@ export class AppointmentsService {
         }
     }
 
-    async markCompleted(id: string, dto: UpdateAppointmentDto) {
-        if (!id) {
-            this.logger.warn('Appointment completion failed due to missing id');
-            throw new NotFoundException('Appointment id is required');
-        }
-
-        this.logger.log('Marking appointment as completed', {
-            appointmentId: id,
-            completedAt: dto.completedAt,
+    async completeAppointment(appointmentId: string): Promise<AppointmentStatusResponse> {
+        this.logger.log('Processing appointment completion request', {
+            appointmentId,
+            action: 'complete',
+            result: 'started',
         });
 
-        return {
-            appointmentId: id,
-            status: AppointmentStatus.COMPLETED,
-            completedAt: dto.completedAt ?? new Date().toISOString(),
-        };
+        try {
+            const response = await this.updateAppointmentLifecycle(
+                appointmentId,
+                (appointment, now) => {
+                    if (appointment.status === AppointmentStatus.COMPLETED) {
+                        return {
+                            isIdempotent: true,
+                            message: 'Appointment is already completed',
+                            targetStatus: AppointmentStatus.COMPLETED,
+                        };
+                    }
+
+                    if (appointment.status === AppointmentStatus.CANCELLED) {
+                        throw new BadRequestException(
+                            'Cancelled appointment cannot be marked as completed',
+                        );
+                    }
+
+                    if (!this.canCompleteAppointment(appointment.startTime, now)) {
+                        throw new BadRequestException(
+                            'Appointment can only be completed after its start time',
+                        );
+                    }
+
+                    return {
+                        isIdempotent: false,
+                        message: 'Appointment marked as completed',
+                        targetStatus: AppointmentStatus.COMPLETED,
+                    };
+                },
+            );
+
+            this.logger.log('Appointment completion request succeeded', {
+                appointmentId,
+                action: 'complete',
+                result: response.status === AppointmentStatus.COMPLETED ? 'completed' : 'unknown',
+            });
+
+            return response;
+        } catch (error) {
+            this.logger.error('Appointment completion request failed', error as Error, {
+                appointmentId,
+                action: 'complete',
+                result: 'failed',
+                failureReason: this.getFailureReason(error),
+            });
+            throw error;
+        }
+    }
+
+    async cancelAppointment(appointmentId: string): Promise<AppointmentStatusResponse> {
+        this.logger.log('Processing appointment cancellation request', {
+            appointmentId,
+            action: 'cancel',
+            result: 'started',
+        });
+
+        try {
+            const response = await this.updateAppointmentLifecycle(
+                appointmentId,
+                (appointment, now) => {
+                    if (appointment.status === AppointmentStatus.CANCELLED) {
+                        return {
+                            isIdempotent: true,
+                            message: 'Appointment is already cancelled',
+                            targetStatus: AppointmentStatus.CANCELLED,
+                        };
+                    }
+
+                    if (appointment.status === AppointmentStatus.COMPLETED) {
+                        throw new BadRequestException('Completed appointment cannot be cancelled');
+                    }
+
+                    if (!this.canCancelAppointment(appointment.startTime, now)) {
+                        throw new BadRequestException(
+                            'Appointment can only be cancelled at least 24 hours before start time',
+                        );
+                    }
+
+                    return {
+                        isIdempotent: false,
+                        message: 'Appointment cancelled successfully',
+                        targetStatus: AppointmentStatus.CANCELLED,
+                    };
+                },
+            );
+
+            this.logger.log('Appointment cancellation request succeeded', {
+                appointmentId,
+                action: 'cancel',
+                result: response.status === AppointmentStatus.CANCELLED ? 'cancelled' : 'unknown',
+            });
+
+            return response;
+        } catch (error) {
+            this.logger.error('Appointment cancellation request failed', error as Error, {
+                appointmentId,
+                action: 'cancel',
+                result: 'failed',
+                failureReason: this.getFailureReason(error),
+            });
+            throw error;
+        }
     }
 
     private async confirmReservation(
@@ -216,6 +329,53 @@ export class AppointmentsService {
         }
     }
 
+    private async updateAppointmentLifecycle(
+        appointmentId: string,
+        validateTransition: (
+            appointment: AppointmentLifecycleRecord,
+            now: Date,
+        ) => {
+            isIdempotent: boolean;
+            message: string;
+            targetStatus: AppointmentStatus;
+        },
+    ): Promise<AppointmentStatusResponse> {
+        return this.prisma.$transaction(async (tx) => {
+            await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`appointment-lifecycle:${appointmentId}`}))`;
+
+            const appointment = await tx.appointment.findUnique({
+                where: { id: appointmentId },
+                select: {
+                    id: true,
+                    status: true,
+                    startTime: true,
+                },
+            });
+
+            if (!appointment) {
+                throw new NotFoundException(`Appointment ${appointmentId} not found`);
+            }
+
+            const now = this.getUtcNow();
+            const transition = validateTransition(appointment, now);
+
+            if (!transition.isIdempotent) {
+                await tx.appointment.update({
+                    where: { id: appointment.id },
+                    data: {
+                        status: transition.targetStatus,
+                    },
+                });
+            }
+
+            return {
+                message: transition.message,
+                appointmentId: appointment.id,
+                status: transition.targetStatus,
+            };
+        }, APPOINTMENT_LIFECYCLE_TRANSACTION_OPTIONS);
+    }
+
     private async returnExistingAppointment(
         tx: Prisma.TransactionClient,
         reservation: ReservationForConfirmation,
@@ -300,6 +460,22 @@ export class AppointmentsService {
             startTime: { lt: endTime },
             endTime: { gt: startTime },
         };
+    }
+
+    private canCompleteAppointment(startTime: Date, now: Date): boolean {
+        return now.getTime() >= startTime.getTime();
+    }
+
+    private canCancelAppointment(startTime: Date, now: Date): boolean {
+        return startTime.getTime() >= this.addHours(now, CANCELLATION_WINDOW_HOURS).getTime();
+    }
+
+    private addHours(date: Date, hours: number): Date {
+        return new Date(date.getTime() + hours * 60 * 60 * 1000);
+    }
+
+    private getUtcNow(): Date {
+        return new Date();
     }
 
     private buildConfirmationResponse(
