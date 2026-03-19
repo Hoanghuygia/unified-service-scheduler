@@ -1,0 +1,48 @@
+name: CD
+
+on:
+  # Trigger only when the CI workflow has completed on the main branch.
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: ["main"]
+
+# Prevent overlapping deployments to the same environment.
+concurrency:
+  group: ec2-production-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy-ec2:
+    name: Deploy To AWS EC2
+    runs-on: ubuntu-latest
+
+    # Deploy only if CI finished successfully for main.
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
+
+    steps:
+      - name: Deploy over SSH
+        # Connect to EC2 and run the deployment script in order.
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            # Move to application directory on EC2.
+            cd ~/unified-service-scheduler
+
+            # Pull latest code from main branch.
+            git pull origin main
+
+            # Install exact dependencies from lock file.
+            npm ci
+
+            # Apply pending Prisma migrations in production-safe mode.
+            npx prisma migrate deploy
+
+            # Build the application for production.
+            npm run build
+
+            # Restart app process managed by PM2.
+            pm2 restart unified-service-scheduler
