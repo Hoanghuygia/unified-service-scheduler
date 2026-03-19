@@ -39,6 +39,3 @@ jobs:
 
       - name: Build Docker image
         run: docker build -t unified-service-scheduler:${{ github.sha }} .
-
-      - name: Placeholder - Future deploy to AWS App Runner
-        run: echo "TODO: add CD pipeline for AWS App Runner + RDS"
