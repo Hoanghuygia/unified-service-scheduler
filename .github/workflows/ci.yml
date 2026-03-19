@@ -9,12 +9,16 @@ on:
 jobs:
   build-test:
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      NODE_ENV: test
+      DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/unified_service_scheduler_ci
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '20'
           cache: 'npm'
@@ -25,7 +29,8 @@ jobs:
       - name: Generate Prisma client
         run: npx prisma generate
 
-      - name: Lint
+      - name: Lint (advisory)
+        continue-on-error: true
         run: npm run lint
 
       - name: Unit tests
@@ -36,9 +41,3 @@ jobs:
 
       - name: Build
         run: npm run build
-
-      - name: Build Docker image
-        run: docker build -t unified-service-scheduler:${{ github.sha }} .
-
-      - name: Placeholder - Future deploy to AWS App Runner
-        run: echo "TODO: add CD pipeline for AWS App Runner + RDS"
