@@ -5,6 +5,7 @@ import {
   ServiceType,
 } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import 'dotenv/config';
 import { Pool } from 'pg';
 
 const databaseUrl = process.env['DATABASE_URL'];
