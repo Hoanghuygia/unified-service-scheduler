@@ -1,5 +1,14 @@
 import { Body, Controller, HttpCode, HttpStatus, Param, Patch, Post } from '@nestjs/common';
-import { ApiBody, ApiCreatedResponse, ApiOkResponse, ApiParam, ApiTags } from '@nestjs/swagger';
+import {
+    ApiBadRequestResponse,
+    ApiBody,
+    ApiCreatedResponse,
+    ApiNotFoundResponse,
+    ApiOkResponse,
+    ApiOperation,
+    ApiParam,
+    ApiTags,
+} from '@nestjs/swagger';
 import { AppLoggerService } from '../../common/logger/logger.service';
 import { AppointmentsService } from './appointments.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
@@ -15,6 +24,7 @@ export class AppointmentsController {
 
     @Post()
     @HttpCode(HttpStatus.CREATED)
+    @ApiOperation({ summary: 'Confirm a reservation and create a final appointment' })
     @ApiBody({
         type: CreateAppointmentDto,
         examples: {
@@ -32,13 +42,13 @@ export class AppointmentsController {
             example: {
                 success: true,
                 data: {
-                    message: 'Appointment booked successfully',
                     appointmentId: 'appt_mock_456',
                     reservationId: 'd8a43f44-e8d6-4fb2-8f59-d4d1df3efde9',
                     status: 'BOOKED',
                     bookedAt: '2026-03-17T12:10:00.000Z',
+                    confirmationResult: 'created',
                 },
-                message: null,
+                message: 'Appointment booked successfully',
                 meta: {
                     timestamp: '2026-03-17T12:10:00.000Z',
                     requestId: '3e6c28f9-8309-4e39-b128-4f7918589144',
@@ -46,7 +56,12 @@ export class AppointmentsController {
             },
         },
     })
-    async create(@Body() dto: CreateAppointmentDto) {
+    @ApiBadRequestResponse({
+        description:
+            'Reservation is expired, unavailable, not active, or missing assigned resources',
+    })
+    @ApiNotFoundResponse({ description: 'Reservation not found' })
+    async create(@Body() dto: CreateAppointmentDto): Promise<unknown> {
         this.logger.debug('Received confirm booking request', { reservationId: dto.reservationId });
         return this.appointmentsService.confirmBooking(dto);
     }
