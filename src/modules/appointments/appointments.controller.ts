@@ -118,7 +118,7 @@ export class AppointmentsController {
         },
     })
     @ApiBadRequestResponse({
-        description: 'Appointment cannot be cancelled due to state or 24-hour rule',
+        description: 'Appointment cannot be cancelled due to state or 24-hour rule.',
     })
     @ApiNotFoundResponse({ description: 'Appointment not found' })
     async cancelAppointment(@Param() params: AppointmentIdParamDto): Promise<unknown> {
