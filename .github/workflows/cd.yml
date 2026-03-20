@@ -30,8 +30,11 @@ jobs:
             # Move to application directory on EC2.
             cd ~/unified-service-scheduler
             nvm use 20
+            # Ensure pm2 is installed under the active Node version.
+            which pm2 || npm install -g pm2
             # Pull latest code from main branch.
-            git pull origin main
+            git fetch origin main
+            git reset --hard origin/main
             # Install exact dependencies from lock file.
             npm ci
             # Apply pending Prisma migrations in production-safe mode.
