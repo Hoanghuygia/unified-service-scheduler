@@ -29,6 +29,7 @@ jobs:
           script: |
             # Move to application directory on EC2.
             cd ~/unified-service-scheduler
+            nvm use 20
             # Pull latest code from main branch.
             git pull origin main
             # Install exact dependencies from lock file.
