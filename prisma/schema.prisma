@@ -24,8 +24,8 @@ model Dealership {
   serviceBays  ServiceBay[]
   appointments Appointment[]
   reservations Reservation[]
-  createdAt    DateTime                        @default(now())
-  updatedAt    DateTime                        @updatedAt
+  createdAt    DateTime                        @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime                        @updatedAt @db.Timestamptz(3)
 }
 
 model Technician {
@@ -35,8 +35,8 @@ model Technician {
   email        String                          @unique
   appointments Appointment[]
   reservations Reservation[]
-  createdAt    DateTime                        @default(now())
-  updatedAt    DateTime                        @updatedAt
+  createdAt    DateTime                        @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime                        @updatedAt @db.Timestamptz(3)
 }
 
 model ServiceBay {
@@ -46,8 +46,8 @@ model ServiceBay {
   dealership   Dealership                      @relation(fields: [dealershipId], references: [id])
   appointments Appointment[]
   reservations Reservation[]
-  createdAt    DateTime                        @default(now())
-  updatedAt    DateTime                        @updatedAt
+  createdAt    DateTime                        @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime                        @updatedAt @db.Timestamptz(3)
 
   @@index([dealershipId])
 }
@@ -58,15 +58,15 @@ model ServiceType {
   durationMinutes         Int
   appointmentServiceTypes AppointmentServiceType[]
   reservationServiceTypes ReservationServiceType[]
-  createdAt               DateTime              @default(now())
-  updatedAt               DateTime              @updatedAt
+  createdAt               DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt               DateTime              @updatedAt @db.Timestamptz(3)
 }
 
 model Appointment {
   id                   String                   @id @default(uuid())
   vehicleId            String
-  startTime            DateTime
-  endTime              DateTime
+  startTime            DateTime                 @db.Timestamptz(3)
+  endTime              DateTime                 @db.Timestamptz(3)
   totalDurationMinutes Int
   status               AppointmentStatus        @default(BOOKED)
   reservation          Reservation?
@@ -79,8 +79,8 @@ model Appointment {
   serviceBayId         String?
   serviceBay           ServiceBay?              @relation(fields: [serviceBayId], references: [id], onDelete: SetNull)
 
-  createdAt            DateTime                 @default(now())
-  updatedAt            DateTime                 @updatedAt
+  createdAt            DateTime                 @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime                 @updatedAt @db.Timestamptz(3)
 
   @@index([dealershipId, startTime])
   @@index([vehicleId])
@@ -91,10 +91,10 @@ model Appointment {
 model Reservation {
   id                   String                   @id @default(uuid())
   vehicleId            String
-  desiredTime          DateTime
-  startTime            DateTime
-  endTime              DateTime
-  expiresAt            DateTime
+  desiredTime          DateTime                 @db.Timestamptz(3)
+  startTime            DateTime                 @db.Timestamptz(3)
+  endTime              DateTime                 @db.Timestamptz(3)
+  expiresAt            DateTime                 @db.Timestamptz(3)
   totalDurationMinutes Int
   status               ReservationStatus        @default(ACTIVE)
   serviceTypes         ReservationServiceType[]
@@ -108,8 +108,8 @@ model Reservation {
   appointmentId        String?                  @unique
   appointment          Appointment?             @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
 
-  createdAt            DateTime                 @default(now())
-  updatedAt            DateTime                 @updatedAt
+  createdAt            DateTime                 @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime                 @updatedAt @db.Timestamptz(3)
 
   @@index([dealershipId, startTime])
   @@index([vehicleId])
@@ -123,7 +123,7 @@ model AppointmentServiceType {
   appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
   serviceTypeId String
   serviceType   ServiceType @relation(fields: [serviceTypeId], references: [id], onDelete: Restrict)
-  createdAt     DateTime    @default(now())
+  createdAt     DateTime    @default(now()) @db.Timestamptz(3)
 
   @@id([appointmentId, serviceTypeId])
   @@index([serviceTypeId])
@@ -134,7 +134,7 @@ model ReservationServiceType {
   reservation   Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
   serviceTypeId String
   serviceType   ServiceType @relation(fields: [serviceTypeId], references: [id], onDelete: Restrict)
-  createdAt     DateTime    @default(now())
+  createdAt     DateTime    @default(now()) @db.Timestamptz(3)
 
   @@id([reservationId, serviceTypeId])
   @@index([serviceTypeId])
