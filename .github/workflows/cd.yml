@@ -27,19 +27,13 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            # Move to application directory on EC2.
             cd ~/unified-service-scheduler
             nvm use 20
-            # Ensure pm2 is installed under the active Node version.
             which pm2 || npm install -g pm2
-            # Pull latest code from main branch.
             git fetch origin main
             git reset --hard origin/main
-            # Install exact dependencies from lock file.
             npm ci
-            # Apply pending Prisma migrations in production-safe mode.
+            npx prisma generate
             npx prisma migrate deploy
-            # Build the application for production.
             npm run build
-            # Restart app process managed by PM2.
-            pm2 restart unified-service-scheduler
+            pm2 restart unified-service-scheduler --update-env

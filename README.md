@@ -31,7 +31,7 @@ Unified Service Scheduler is a NestJS backend for managing vehicle service reser
 - `PATCH /appointments/:id/cancel` - cancel an appointment if it still satisfies the cancellation rule
 - `GET /slots?dealershipId=...&endTime=...` - list occupied slots from now until the requested end time
 
-Swagger UI is available at `http://localhost:3000/api-docs` after the application starts.
+Swagger UI is available at `http://localhost:3000/api-docs` after the application starts locally, or at the production URL: http://47.128.227.8:3000/api-docs
 
 ## Prerequisites
 
@@ -149,7 +149,7 @@ After the server starts, use either:
 After first-time setup, the usual local workflow is:
 
 ```bash
-docker compose up -d postgres
+npm install 
 npm run dev
 ```
 
@@ -233,9 +233,9 @@ Note: the current e2e tests bootstrap the Nest application in-memory. They valid
 
 ## CI/CD
 
-GitHub Actions workflow file: `.github/workflows/ci.yml`
+GitHub Actions workflow files: `.github/workflows/ci.yml` and `.github/workflows/cd.yml`
 
-The current workflow runs on pushes and pull requests and includes:
+The CI workflow runs on pushes and pull requests and includes:
 
 - dependency installation with `npm ci`
 - Prisma client generation
@@ -243,9 +243,29 @@ The current workflow runs on pushes and pull requests and includes:
 - unit tests
 - e2e tests
 - production build validation
-- Docker image build validation
 
-At the moment, the workflow includes a placeholder step for future AWS App Runner deployment. CI is implemented; deployment automation can be expanded later.
+The CD workflow triggers automatically when CI passes on the `main` branch and deploys to AWS EC2 over SSH:
+
+- pulls the latest code from `main`
+- installs dependencies
+- generates the Prisma client
+- runs database migrations
+- builds the application
+- restarts the pm2 process with updated environment variables
+
+## Production Deployment
+
+The application is deployed on AWS EC2 and accessible at:
+
+| Resource | URL |
+|---|---|
+| Swagger UI | http://47.128.227.8:3000/api-docs |
+| Health check | http://47.128.227.8:3000/health |
+| API base | http://47.128.227.8:3000 |
+
+The database is hosted on Amazon RDS (PostgreSQL) and the application connects using SSL (`sslmode=require`).
+
+The process is managed with pm2 on the EC2 instance.
 
 ## Suggested Manual Verification Flow
 

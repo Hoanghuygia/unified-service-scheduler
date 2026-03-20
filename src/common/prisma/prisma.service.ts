@@ -44,7 +44,7 @@ function createPoolConfigFromUrl(rawUrl: string): PoolConfig {
     };
 
     const sslMode = parsed.searchParams.get('sslmode');
-    if (sslMode === 'require') {
+    if (sslMode === 'require' || sslMode === 'no-verify') {
         config.ssl = { rejectUnauthorized: false };
     }
 
